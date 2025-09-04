@@ -1,10 +1,11 @@
 import { getStandingsData } from "@/lib/sleeper"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Trophy, TrendingUp, TrendingDown } from "lucide-react"
+import { Trophy, TrendingUp, TrendingDown, Calendar } from "lucide-react"
 
 export default async function StandingsPage() {
   const standings = await getStandingsData()
+
+  const seasonStarted = standings.some((team) => team.wins > 0 || team.losses > 0 || team.pointsFor > 0)
 
   return (
     <div className="space-y-6">
@@ -14,6 +15,14 @@ export default async function StandingsPage() {
           League Standings
         </h1>
         <p className="text-muted-foreground">Current team rankings and statistics</p>
+        {!seasonStarted && (
+          <div className="flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-lg">
+            <Calendar className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Season hasn't started yet - standings will update after games begin
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Standings Table */}
@@ -48,9 +57,9 @@ export default async function StandingsPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-lg">{index + 1}</span>
                           {isPlayoffPosition && (
-                            <Badge variant="secondary" className="text-xs">
+                            <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded text-xs font-medium">
                               Playoff
-                            </Badge>
+                            </span>
                           )}
                         </div>
                       </td>
@@ -77,27 +86,35 @@ export default async function StandingsPage() {
                         <span className="font-mono">{winPercentage.toFixed(1)}%</span>
                       </td>
                       <td className="p-4 text-right">
-                        <span className="font-mono">{team.pointsFor.toFixed(2)}</span>
+                        <span className="font-mono">
+                          {!seasonStarted && team.pointsFor === 0 ? "-" : team.pointsFor.toFixed(2)}
+                        </span>
                       </td>
                       <td className="p-4 text-right">
-                        <span className="font-mono">{team.pointsAgainst.toFixed(2)}</span>
+                        <span className="font-mono">
+                          {!seasonStarted && team.pointsAgainst === 0 ? "-" : team.pointsAgainst.toFixed(2)}
+                        </span>
                       </td>
                       <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {pointsDiff > 0 ? (
-                            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                          )}
-                          <span
-                            className={`font-mono ${
-                              pointsDiff > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            {pointsDiff > 0 ? "+" : ""}
-                            {pointsDiff.toFixed(2)}
-                          </span>
-                        </div>
+                        {!seasonStarted && pointsDiff === 0 ? (
+                          <span className="font-mono text-muted-foreground">-</span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            {pointsDiff > 0 ? (
+                              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                            )}
+                            <span
+                              className={`font-mono ${
+                                pointsDiff > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {pointsDiff > 0 ? "+" : ""}
+                              {pointsDiff.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
@@ -109,72 +126,74 @@ export default async function StandingsPage() {
       </Card>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Highest Scoring</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const highestScoring = standings.reduce((prev, current) =>
-                prev.pointsFor > current.pointsFor ? prev : current,
-              )
-              return (
-                <div>
-                  <div className="font-medium">{highestScoring.teamName}</div>
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {highestScoring.pointsFor.toFixed(2)}
+      {seasonStarted && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Highest Scoring</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const highestScoring = standings.reduce((prev, current) =>
+                  prev.pointsFor > current.pointsFor ? prev : current,
+                )
+                return (
+                  <div>
+                    <div className="font-medium">{highestScoring.teamName}</div>
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {highestScoring.pointsFor.toFixed(2)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">points scored</div>
                   </div>
-                  <div className="text-sm text-muted-foreground">points scored</div>
-                </div>
-              )
-            })()}
-          </CardContent>
-        </Card>
+                )
+              })()}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Best Defense</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const bestDefense = standings.reduce((prev, current) =>
-                prev.pointsAgainst < current.pointsAgainst ? prev : current,
-              )
-              return (
-                <div>
-                  <div className="font-medium">{bestDefense.teamName}</div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {bestDefense.pointsAgainst.toFixed(2)}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Best Defense</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const bestDefense = standings.reduce((prev, current) =>
+                  prev.pointsAgainst < current.pointsAgainst ? prev : current,
+                )
+                return (
+                  <div>
+                    <div className="font-medium">{bestDefense.teamName}</div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {bestDefense.pointsAgainst.toFixed(2)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">points allowed</div>
                   </div>
-                  <div className="text-sm text-muted-foreground">points allowed</div>
-                </div>
-              )
-            })()}
-          </CardContent>
-        </Card>
+                )
+              })()}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">League Leader</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const leader = standings[0]
-              return (
-                <div>
-                  <div className="font-medium">{leader.teamName}</div>
-                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {leader.wins}-{leader.losses}
-                    {leader.ties > 0 && `-${leader.ties}`}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">League Leader</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const leader = standings[0]
+                return (
+                  <div>
+                    <div className="font-medium">{leader.teamName}</div>
+                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {leader.wins}-{leader.losses}
+                      {leader.ties > 0 && `-${leader.ties}`}
+                    </div>
+                    <div className="text-sm text-muted-foreground">record</div>
                   </div>
-                  <div className="text-sm text-muted-foreground">record</div>
-                </div>
-              )
-            })()}
-          </CardContent>
-        </Card>
-      </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

@@ -161,15 +161,26 @@ export async function getStandingsData() {
   return rosters
     .map((roster) => {
       const user = users.find((u) => u.user_id === roster.owner_id)
+
+      const pointsFor =
+        roster.settings.fpts != null && roster.settings.fpts_decimal != null
+          ? roster.settings.fpts + roster.settings.fpts_decimal / 100
+          : 0
+
+      const pointsAgainst =
+        roster.settings.fpts_against != null && roster.settings.fpts_against_decimal != null
+          ? roster.settings.fpts_against + roster.settings.fpts_against_decimal / 100
+          : 0
+
       return {
         rosterId: roster.roster_id,
         teamName: user?.metadata?.team_name || user?.display_name || "Unknown Team",
         ownerName: user?.display_name || "Unknown Owner",
-        wins: roster.settings.wins,
-        losses: roster.settings.losses,
-        ties: roster.settings.ties,
-        pointsFor: roster.settings.fpts + roster.settings.fpts_decimal / 100,
-        pointsAgainst: roster.settings.fpts_against + roster.settings.fpts_against_decimal / 100,
+        wins: roster.settings.wins || 0,
+        losses: roster.settings.losses || 0,
+        ties: roster.settings.ties || 0,
+        pointsFor,
+        pointsAgainst,
       }
     })
     .sort((a, b) => {
