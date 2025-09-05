@@ -485,9 +485,7 @@ export default function HomePage() {
       </div>
     </ErrorBoundary>
   )
-}
-
-function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users: any[]; rosters: any[] }) {
+}function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users: any[]; rosters: any[] }) {
   console.log("[v0] GuillotineTable received:", {
     matchupsCount: matchups.length,
     usersCount: users.length,
@@ -557,61 +555,90 @@ function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users:
   const teamsWithSafety = teamScores.map((team, index) => {
     const isPreGame = team.points === null
     const scoreIndex = teamsWithScores.findIndex(t => t.rosterId === team.rosterId)
+    const totalTeams = teamScores.length
+    const rank = index + 1 // Ranking: 1, 2, 3... up to 12 (best to worst)
+    
+    // Determine zone based on rank (1 is best, 12 is worst)
+    let zone = "safety"
+    if (rank <= 3) {
+      zone = "super-safety" // Ranks 1, 2, 3 - GREEN (best teams)
+    } else if (rank <= 6) {
+      zone = "safety" // Ranks 4, 5, 6 - NO COLOR
+    } else if (rank <= 9) {
+      zone = "danger" // Ranks 7, 8, 9 - YELLOW
+    } else {
+      zone = "chopped" // Ranks 10, 11, 12 - RED (worst teams)
+    }
     
     return {
       ...team,
-      rank: index + 1,
+      rank,
       safetyPercentage: isPreGame ? 50 : (maxPoints > 0 ? Math.min(95, Math.max(5, (team.points / maxPoints) * 100)) : 50),
-      zone: isPreGame ? "safety" : (scoreIndex >= dangerZoneCutoff ? "danger" : "safety"),
+      zone: isPreGame ? "safety" : zone,
     }
   })
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="w-full rounded-2xl border border-red-600/50 bg-black shadow-sm p-4 md:p-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 text-red-400">⚔️</div>
-            <span className="text-lg font-bold text-red-400 uppercase tracking-wider">Danger Zone</span>
-            <div className="flex-1 h-px bg-red-500"></div>
-          </div>
-
-          <div className="space-y-2">
-            {teamsWithSafety
-              .filter((team) => team.zone === "danger")
-              .map((team) => (
+    <div className="w-full rounded-2xl border border-gray-600 bg-black shadow-sm p-4 md:p-6">
+      <div className="space-y-4">
+        {/* Single continuous list with zone headers - ordered from worst to best */}
+        {/* Group teams by zone and display in order: Chopped -> Danger -> Safety -> Super Safety */}
+        {[
+          { zone: 'chopped', teams: teamsWithSafety.filter(t => t.zone === 'chopped').sort((a, b) => b.rank - a.rank) },
+          { zone: 'danger', teams: teamsWithSafety.filter(t => t.zone === 'danger').sort((a, b) => b.rank - a.rank) },
+          { zone: 'safety', teams: teamsWithSafety.filter(t => t.zone === 'safety').sort((a, b) => b.rank - a.rank) },
+          { zone: 'super-safety', teams: teamsWithSafety.filter(t => t.zone === 'super-safety').sort((a, b) => b.rank - a.rank) }
+        ].map(({ zone, teams }) => (
+          teams.length > 0 && (
+            <div key={zone}>
+              <div className="flex items-center gap-2 mb-3 mt-2">
+                {zone === "chopped" && (
+                  <>
+                    <div className="w-4 h-4 text-red-400">💀</div>
+                    <span className="text-lg font-bold text-red-400 uppercase tracking-wider">Chopped Zone</span>
+                    <div className="flex-1 h-px bg-red-500"></div>
+                  </>
+                )}
+                {zone === "danger" && (
+                  <>
+                    <div className="w-4 h-4 text-yellow-400">⚠️</div>
+                    <span className="text-lg font-bold text-yellow-400 uppercase tracking-wider">Danger Zone</span>
+                    <div className="flex-1 h-px bg-yellow-500"></div>
+                  </>
+                )}
+                {zone === "safety" && (
+                  <>
+                    <div className="w-4 h-4 text-slate-400">🛡️</div>
+                    <span className="text-lg font-bold text-slate-400 uppercase tracking-wider">Safety Zone</span>
+                    <div className="flex-1 h-px bg-slate-500"></div>
+                  </>
+                )}
+                {zone === "super-safety" && (
+                  <>
+                    <div className="w-4 h-4 text-green-400">👑</div>
+                    <span className="text-lg font-bold text-green-400 uppercase tracking-wider">Super Safety Zone</span>
+                    <div className="flex-1 h-px bg-green-500"></div>
+                  </>
+                )}
+              </div>
+              {teams.map(team => (
                 <CompactTeamRow key={team.rosterId} team={team} />
               ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full rounded-2xl border border-green-600/50 bg-black shadow-sm p-4 md:p-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 text-green-400">✅</div>
-            <span className="text-lg font-bold text-green-400 uppercase tracking-wider">Safety Zone</span>
-            <div className="flex-1 h-px bg-green-500"></div>
-          </div>
-
-          <div className="space-y-2">
-            {teamsWithSafety
-              .filter((team) => team.zone === "safety")
-              .map((team) => (
-                <CompactTeamRow key={team.rosterId} team={team} />
-              ))}
-          </div>
-        </div>
+            </div>
+          )
+        ))}
       </div>
     </div>
   )
 }
 
-function CompactTeamRow({ team }: { team: { rank: number; safetyPercentage: number; zone: string; rosterId: any; ownerName: any; handle: any; avatar: string; points: any; projectedPoints: any; isPreGame?: boolean } }) {
+function CompactTeamRow({ team }: { team: { rank: number; safetyPercentage: number; zone: string; rosterId: any; ownerName: any; handle: any; avatar: string; points: any; projectedPoints: any; proj: number; act: number; isPreGame?: boolean } }) {
   const getScoreColor = (zone: string, points: any) => {
     if (zone === "pregame" || points === null) return "text-slate-400"
-    if (zone === "danger") return "text-red-300"
-    if (zone === "safety") return "text-green-300"
+    if (zone === "chopped") return "text-red-300" // RED for ranks 12, 11, 10
+    if (zone === "danger") return "text-yellow-300" // YELLOW for ranks 9, 8, 7
+    if (zone === "safety") return "text-slate-200" // NO COLOR for ranks 6, 5, 4
+    if (zone === "super-safety") return "text-green-300" // GREEN for ranks 3, 2, 1
     return "text-slate-200"
   }
 
@@ -857,3 +884,5 @@ function getRelativeTime(date: Date): string {
   const diffDays = Math.floor(diffHours / 24)
   return `${diffDays}d ago`
 }
+
+
