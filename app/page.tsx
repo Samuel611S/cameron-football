@@ -575,6 +575,8 @@ export default function HomePage() {
       rank,
       safetyPercentage: isPreGame ? 50 : (maxPoints > 0 ? Math.min(95, Math.max(5, (team.points / maxPoints) * 100)) : 50),
       zone: isPreGame ? "safety" : zone,
+      proj: team.projectedPoints || 0,
+      act: team.points || 0,
     }
   })
 
