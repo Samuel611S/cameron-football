@@ -190,27 +190,25 @@ export default function HomePage() {
         <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto px-3 sm:px-4 py-4 w-full">
           <div className={`space-y-6 transition-opacity duration-300 ${fadeClass}`}>
             <div className="text-center space-y-4">
-              <h1 className="text-[clamp(1.25rem,2.5vw,1.75rem)] font-bold text-balance leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-balance leading-tight">
                 {currentLeague.name} — Week {currentWeek} Matchups
               </h1>
-              <p className="text-[clamp(0.9rem,2vw,1.1rem)] text-slate-400">
+              <p className="text-base sm:text-lg text-slate-400">
                 {siteConfig.season} Season • {currentLeague.type} League
               </p>
-              <p className="text-[clamp(0.8rem,1.5vw,0.95rem)] text-slate-500">
-                Auto-updating every 5 minutes • Week detection: automatic
-              </p>
+              <p className="text-sm text-slate-500">Auto-updating every 5 minutes • Week detection: automatic</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {matchups.map((matchup) => (
                 <div
                   key={matchup.matchupId}
-                  className="w-full rounded-2xl border border-black bg-black shadow-sm p-4 md:p-6"
+                  className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-2 sm:gap-4">
                       <span
-                        className={`px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[clamp(0.75rem,1.5vw,0.9rem)] font-bold ${
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
                           matchup.teams[0].winProbability >= 0.5
                             ? "bg-green-600/30 text-green-300 border border-green-500/50"
                             : "bg-red-600/30 text-red-300 border border-red-500/50"
@@ -218,25 +216,25 @@ export default function HomePage() {
                       >
                         WIN {Math.round(matchup.teams[0].winProbability * 100)}%
                       </span>
-                      <span className="text-[clamp(1.25rem,3vw,2rem)] font-bold">
+                      <span className="text-xl sm:text-2xl font-bold">
                         {matchup.teams[0].points !== null
                           ? matchup.teams[0].points.toFixed(1)
                           : matchup.teams[0].projection.toFixed(1)}
                       </span>
                     </div>
 
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 rounded-full bg-black text-[clamp(0.8rem,1.5vw,1rem)] font-bold border border-black">
+                    <div className="px-3 py-1 rounded-full bg-gray-700 text-sm font-bold border border-gray-600">
                       VS
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-4">
-                      <span className="text-[clamp(1.25rem,3vw,2rem)] font-bold">
+                      <span className="text-xl sm:text-2xl font-bold">
                         {matchup.teams[1].points !== null
                           ? matchup.teams[1].points.toFixed(1)
                           : matchup.teams[1].projection.toFixed(1)}
                       </span>
                       <span
-                        className={`px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[clamp(0.75rem,1.5vw,0.9rem)] font-bold ${
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
                           matchup.teams[1].winProbability >= 0.5
                             ? "bg-green-600/30 text-green-300 border border-green-500/50"
                             : "bg-red-600/30 text-red-300 border border-red-500/50"
@@ -258,19 +256,19 @@ export default function HomePage() {
                           />
                         ) : (
                           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black border-2 border-black flex items-center justify-center shadow-lg flex-shrink-0">
-                            <span className="text-[clamp(0.7rem,1.2vw,0.8rem)] font-bold text-slate-300">
+                            <span className="text-xs font-bold text-slate-300">
                               {team.ownerName.charAt(0).toUpperCase()}
                             </span>
                           </div>
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-[clamp(0.9rem,1.8vw,1.1rem)] truncate">{team.ownerName}</div>
-                          <div className="text-[clamp(0.8rem,1.5vw,0.95rem)] text-slate-400 truncate">
+                          <div className="font-bold text-sm sm:text-base truncate">{team.ownerName}</div>
+                          <div className="text-xs sm:text-sm text-slate-400 truncate">
                             @{team.handle} {team.seed}
                           </div>
 
-                          <div className="mt-2 h-2 bg-black rounded-full overflow-hidden border border-black w-full">
+                          <div className="mt-2 h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 w-full">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-1000 shadow-inner"
                               style={{
@@ -299,13 +297,9 @@ export default function HomePage() {
 
             {matchups.length === 0 && !error && (
               <div className="text-center py-16">
-                <div className="text-[clamp(3rem,8vw,5rem)] mb-6">📊</div>
-                <p className="text-[clamp(1.1rem,2.5vw,1.5rem)] text-slate-400">
-                  No matchup data available for this week.
-                </p>
-                <p className="text-[clamp(0.9rem,2vw,1.1rem)] text-slate-500 mt-2">
-                  The display will automatically retry.
-                </p>
+                <div className="text-6xl mb-6">📊</div>
+                <p className="text-lg text-slate-400">No matchup data available for this week.</p>
+                <p className="text-sm text-slate-500 mt-2">The display will automatically retry.</p>
               </div>
             )}
           </div>

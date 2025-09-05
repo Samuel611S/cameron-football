@@ -402,13 +402,12 @@ export async function getLatestWeekWithData(leagueId: string): Promise<number> {
     }
   }
 
-  // Calculate current NFL week more accurately
+  // Calculate current NFL week more accurately for 2025 season
   const currentDate = new Date()
-  const seasonStart = new Date(2024, 8, 5) // NFL season start
+  const seasonStart = new Date(2025, 8, 4) // September 4, 2025 (2025 NFL season start)
   const daysSinceStart = Math.floor((currentDate.getTime() - seasonStart.getTime()) / (24 * 60 * 60 * 1000))
 
   // NFL weeks typically start on Tuesday and run through Monday
-  // Week 1 starts around September 5, so calculate based on that
   let currentWeek = Math.floor(daysSinceStart / 7) + 1
 
   // Clamp to valid range and handle pre-season
@@ -420,6 +419,8 @@ export async function getLatestWeekWithData(leagueId: string): Promise<number> {
     currentWeek = 1 // Minimum week 1
   }
 
-  console.log(`[v0] No weeks with points data found, using calculated current week: ${currentWeek}`)
-  return currentWeek
+  // For special league types (Survivor, Pick Em) that don't have traditional matchups,
+  // default to week 1 instead of calculated current week
+  console.log(`[v0] No weeks with points data found, using week 1 for special league types`)
+  return 1
 }
