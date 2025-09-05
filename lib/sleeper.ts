@@ -1,4 +1,3 @@
-import "server-only"
 import { allowedLeagueIds } from "@/config/leagues"
 
 const BASE = "https://api.sleeper.app/v1"
