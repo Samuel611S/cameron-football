@@ -46,6 +46,17 @@ function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fall
   return <>{children}</>
 }
 
+const LEAGUE_FORMAT: Record<string, "h2h" | "guillotine" | "survivor" | "pickem"> = {
+  "1269339474479824896": "guillotine",
+  "1269338777323581440": "guillotine",
+  "1269338223918714880": "guillotine",
+  "1261569839911153664": "survivor",
+  "1257745106425872384": "pickem",
+  "1267607910209306624": "h2h",
+  "1267631483950989312": "h2h",
+  "1267631730034999296": "h2h",
+}
+
 export default function HomePage() {
   const [currentLeagueIndex, setCurrentLeagueIndex] = useState(0)
   const [currentWeek, setCurrentWeek] = useState<number>(1)
@@ -200,106 +211,133 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-              {matchups.map((matchup) => (
-                <div
-                  key={matchup.matchupId}
-                  className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          matchup.teams[0].winProbability >= 0.5
-                            ? "bg-green-600/30 text-green-300 border border-green-500/50"
-                            : "bg-red-600/30 text-red-300 border border-red-500/50"
-                        }`}
-                      >
-                        WIN {Math.round(matchup.teams[0].winProbability * 100)}%
-                      </span>
-                      <span className="text-xl sm:text-2xl font-bold">
-                        {matchup.teams[0].points !== null
-                          ? matchup.teams[0].points.toFixed(1)
-                          : matchup.teams[0].projection.toFixed(1)}
-                      </span>
-                    </div>
-
-                    <div className="px-3 py-1 rounded-full bg-gray-700 text-sm font-bold border border-gray-600">
-                      VS
-                    </div>
-
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      <span className="text-xl sm:text-2xl font-bold">
-                        {matchup.teams[1].points !== null
-                          ? matchup.teams[1].points.toFixed(1)
-                          : matchup.teams[1].projection.toFixed(1)}
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          matchup.teams[1].winProbability >= 0.5
-                            ? "bg-green-600/30 text-green-300 border border-green-500/50"
-                            : "bg-red-600/30 text-red-300 border border-red-500/50"
-                        }`}
-                      >
-                        WIN {Math.round(matchup.teams[1].winProbability * 100)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    {matchup.teams.map((team, index) => (
-                      <div key={team.rosterId} className="flex items-center gap-3 flex-1 min-w-0">
-                        {team.avatar ? (
-                          <img
-                            src={team.avatar || "/placeholder.svg"}
-                            alt={team.ownerName}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-black shadow-lg flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black border-2 border-black flex items-center justify-center shadow-lg flex-shrink-0">
-                            <span className="text-xs font-bold text-slate-300">
-                              {team.ownerName.charAt(0).toUpperCase()}
+              {matchups.length > 0
+                ? matchups.map((matchup) => (
+                    <div
+                      key={matchup.matchupId}
+                      className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                matchup.teams[0].winProbability >= 0.5
+                                  ? "bg-green-600/30 text-green-300 border border-green-500/50"
+                                  : "bg-red-600/30 text-red-300 border border-red-500/50"
+                              }`}
+                            >
+                              WIN {Math.round(matchup.teams[0].winProbability * 100)}%
+                            </span>
+                            <span className="text-xl sm:text-2xl font-bold">
+                              {matchup.teams[0].points !== null
+                                ? matchup.teams[0].points.toFixed(1)
+                                : matchup.teams[0].projection.toFixed(1)}
                             </span>
                           </div>
-                        )}
 
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm sm:text-base truncate">{team.ownerName}</div>
-                          <div className="text-xs sm:text-sm text-slate-400 truncate">
-                            @{team.handle} {team.seed}
+                          <div className="px-3 py-1 rounded-full bg-gray-700 text-sm font-bold border border-gray-600">
+                            VS
                           </div>
 
-                          <div className="mt-2 h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 w-full">
-                            <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-1000 shadow-inner"
-                              style={{
-                                width: `${
-                                  ((team.points !== null ? team.points : team.projection) /
-                                    Math.max(
-                                      matchup.teams[0].points !== null
-                                        ? matchup.teams[0].points
-                                        : matchup.teams[0].projection,
-                                      matchup.teams[1].points !== null
-                                        ? matchup.teams[1].points
-                                        : matchup.teams[1].projection,
-                                    )) *
-                                  100
-                                }%`,
-                              }}
-                            />
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl sm:text-2xl font-bold">
+                              {matchup.teams[1].points !== null
+                                ? matchup.teams[1].points.toFixed(1)
+                                : matchup.teams[1].projection.toFixed(1)}
+                            </span>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                matchup.teams[1].winProbability >= 0.5
+                                  ? "bg-green-600/30 text-green-300 border border-green-500/50"
+                                  : "bg-red-600/30 text-red-300 border border-red-500/50"
+                              }`}
+                            >
+                              WIN {Math.round(matchup.teams[1].winProbability * 100)}%
+                            </span>
                           </div>
                         </div>
+
+                        <div className="flex items-center justify-between gap-4">
+                          {matchup.teams.map((team, index) => (
+                            <div key={team.rosterId} className="flex items-center gap-3 flex-1 min-w-0">
+                              {team.avatar ? (
+                                <img
+                                  src={team.avatar || "/placeholder.svg"}
+                                  alt={team.ownerName}
+                                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-black shadow-lg flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black border-2 border-black flex items-center justify-center shadow-lg flex-shrink-0">
+                                  <span className="text-xs font-bold text-slate-300">
+                                    {team.ownerName.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <div className="font-bold text-sm sm:text-base truncate">{team.ownerName}</div>
+                                <div className="text-xs sm:text-sm text-slate-400 truncate">
+                                  @{team.handle} {team.seed}
+                                </div>
+
+                                <div className="mt-2 h-2 bg-gray-700 rounded-full overflow-hidden border border-gray-600 w-full">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-1000 shadow-inner"
+                                    style={{
+                                      width: `${Math.min(100, Math.max(0, team.winProbability * 100))}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                    </div>
+                  ))
+                : (() => {
+                    const format = LEAGUE_FORMAT[currentLeague.leagueId] || "h2h"
+
+                    if (format === "survivor") {
+                      return <SurvivorBoard leagueId={currentLeague.leagueId} users={[]} />
+                    } else if (format === "pickem") {
+                      return <PickEmLeaderboard leagueId={currentLeague.leagueId} users={[]} />
+                    } else if (format === "guillotine") {
+                      // For guillotine, we need to fetch the raw matchup data
+                      return (
+                        <div className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6">
+                          <div className="text-center py-8">
+                            <div className="text-4xl mb-4">⚔️</div>
+                            <p className="text-lg text-slate-400">Guillotine League</p>
+                            <p className="text-sm text-slate-500 mt-2">Individual team standings vs league average</p>
+                          </div>
+                        </div>
+                      )
+                    } else {
+                      return (
+                        <div className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6">
+                          <div className="text-center py-8">
+                            <div className="text-4xl mb-4">📊</div>
+                            <p className="text-lg text-slate-400">No matchup data available for this week.</p>
+                            <p className="text-sm text-slate-500 mt-2">The display will automatically retry.</p>
+                          </div>
+                        </div>
+                      )
+                    }
+                  })()}
             </div>
 
             {matchups.length === 0 && !error && (
               <div className="text-center py-16">
                 <div className="text-6xl mb-6">📊</div>
                 <p className="text-lg text-slate-400">No matchup data available for this week.</p>
-                <p className="text-sm text-slate-500 mt-2">The display will automatically retry.</p>
+                <p className="text-sm text-slate-500 mt-2">
+                  {currentLeague.name.toLowerCase().includes("pick") ||
+                  currentLeague.name.toLowerCase().includes("survivor")
+                    ? "This league uses NFL Pick'em/Survivor format which doesn't have traditional fantasy matchups."
+                    : "The display will automatically retry."}
+                </p>
               </div>
             )}
           </div>
@@ -309,7 +347,186 @@ export default function HomePage() {
   )
 }
 
+function SurvivorBoard({ leagueId, users }: { leagueId: string; users: any[] }) {
+  return (
+    <div className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6">
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-green-400">Alive Players</h3>
+          <p className="text-sm text-slate-400 mt-1">Still in the game</p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {users.slice(0, 20).map((user, index) => (
+            <div
+              key={user.user_id}
+              className="flex flex-col items-center space-y-2 p-3 rounded-lg bg-gray-700 border border-gray-600"
+            >
+              {user.avatar ? (
+                <img
+                  src={avatarUrl(user.avatar) || "/placeholder.svg"}
+                  alt={user.display_name}
+                  className="w-8 h-8 rounded-full border-2 border-green-500"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-green-600 border-2 border-green-500 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">
+                    {user.display_name?.charAt(0).toUpperCase() || "?"}
+                  </span>
+                </div>
+              )}
+              <span className="text-xs font-medium text-center truncate w-full">{user.display_name || "Unknown"}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-center text-sm text-slate-500 bg-gray-700 rounded-lg p-3 border border-gray-600">
+          Picks not available via public API; showing alive status only.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PickEmLeaderboard({ leagueId, users }: { leagueId: string; users: any[] }) {
+  return (
+    <div className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6">
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-blue-400">Pick'em Leaderboard</h3>
+          <p className="text-sm text-slate-400 mt-1">Season standings</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-600">
+                <th className="text-left py-2 text-slate-300">Rank</th>
+                <th className="text-left py-2 text-slate-300">Manager</th>
+                <th className="text-center py-2 text-slate-300">Week</th>
+                <th className="text-center py-2 text-slate-300">Season</th>
+                <th className="text-center py-2 text-slate-300">Win%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.slice(0, 10).map((user, index) => (
+                <tr key={user.user_id} className="border-b border-gray-700">
+                  <td className="py-2 font-bold text-slate-200">#{index + 1}</td>
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      {user.avatar ? (
+                        <img
+                          src={avatarUrl(user.avatar) || "/placeholder.svg"}
+                          alt={user.display_name}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">
+                            {user.display_name?.charAt(0).toUpperCase() || "?"}
+                          </span>
+                        </div>
+                      )}
+                      <span className="font-medium">{user.display_name || "Unknown"}</span>
+                    </div>
+                  </td>
+                  <td className="py-2 text-center tabular-nums text-slate-300">--/--</td>
+                  <td className="py-2 text-center tabular-nums text-slate-300">--/--</td>
+                  <td className="py-2 text-center tabular-nums text-slate-300">--%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="text-center text-sm text-slate-500 bg-gray-700 rounded-lg p-3 border border-gray-600">
+          Standings will appear once picks are recorded.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users: any[]; rosters: any[] }) {
+  const teamScores = matchups
+    .map((matchup) => {
+      const roster = rosters.find((r) => r.roster_id === matchup.roster_id)
+      const user = users.find((u) => u.user_id === roster?.owner_id)
+
+      return {
+        rosterId: matchup.roster_id,
+        ownerName: user?.display_name || "Unknown",
+        avatar: avatarUrl(user?.avatar),
+        points: matchup.points || 0,
+      }
+    })
+    .sort((a, b) => b.points - a.points)
+
+  const lowestScore = Math.min(...teamScores.map((t) => t.points))
+
+  return (
+    <div className="w-full rounded-2xl border border-gray-700 bg-gray-800 shadow-sm p-4 md:p-6">
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-red-400">Guillotine Leaderboard</h3>
+          <p className="text-sm text-slate-400 mt-1">Lowest scorer gets eliminated</p>
+        </div>
+
+        <div className="space-y-2">
+          {teamScores.map((team, index) => {
+            const isChopZone = team.points === lowestScore && team.points > 0
+
+            return (
+              <div
+                key={team.rosterId}
+                className={`flex items-center justify-between p-3 rounded-lg border ${
+                  isChopZone ? "bg-red-900/30 border-red-500/50 ring-1 ring-red-500/30" : "bg-gray-700 border-gray-600"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`w-8 text-center font-bold ${isChopZone ? "text-red-300" : "text-slate-300"}`}>
+                    #{index + 1}
+                  </span>
+                  {team.avatar ? (
+                    <img
+                      src={team.avatar || "/placeholder.svg"}
+                      alt={team.ownerName}
+                      className={`w-8 h-8 rounded-full border-2 ${isChopZone ? "border-red-500" : "border-gray-500"}`}
+                    />
+                  ) : (
+                    <div
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                        isChopZone ? "bg-red-600 border-red-500" : "bg-gray-600 border-gray-500"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-white">{team.ownerName.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                  <span className={`font-medium ${isChopZone ? "text-red-200" : "text-slate-200"}`}>
+                    {team.ownerName}
+                  </span>
+                  {isChopZone && (
+                    <span className="px-2 py-1 text-xs font-bold bg-red-600 text-red-100 rounded-full">CHOP ZONE</span>
+                  )}
+                </div>
+                <span className={`text-lg font-bold tabular-nums ${isChopZone ? "text-red-300" : "text-slate-200"}`}>
+                  {team.points.toFixed(1)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[], week: number): ProcessedMatchup[] {
+  if (!Array.isArray(matchups)) {
+    console.log("[v0] Non-array matchups detected - likely Pick Em or Survivor league")
+    return []
+  }
+
   const matchupGroups = new Map()
 
   matchups.forEach((matchup) => {
@@ -320,10 +537,11 @@ function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[]
     matchupGroups.get(matchupId).push(matchup)
   })
 
-  return Array.from(matchupGroups.entries())
-    .map(([matchupId, teams]) => {
-      if (teams.length !== 2) return null
+  const processedMatchups: ProcessedMatchup[] = []
 
+  Array.from(matchupGroups.entries()).forEach(([matchupId, teams]) => {
+    if (teams.length === 2) {
+      // Traditional H2H matchup
       const processedTeams = teams.map((team: any) => {
         const roster = rosters.find((r) => r.roster_id === team.roster_id)
         const user = users.find((u) => u.user_id === roster?.owner_id)
@@ -350,15 +568,73 @@ function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[]
       processedTeams[0].winProbability = 1 / (1 + Math.exp(-(projA - projB) / 25))
       processedTeams[1].winProbability = 1 - processedTeams[0].winProbability
 
-      return {
+      processedMatchups.push({
         matchupId,
         teams: processedTeams as [MatchupTeam, MatchupTeam],
+      })
+    } else if (teams.length === 1) {
+      // Guillotine-style individual team vs league average
+      const team = teams[0]
+      const roster = rosters.find((r) => r.roster_id === team.roster_id)
+      const user = users.find((u) => u.user_id === roster?.owner_id)
+
+      const points = team.points || null
+      const projection = calculateProjection(roster, rosters, week)
+
+      const allMatchupPoints = matchups.map((m) => m.points).filter((p) => p !== null && p !== undefined && p > 0)
+
+      const leagueAverage =
+        allMatchupPoints.length > 0
+          ? allMatchupPoints.reduce((sum, points) => sum + points, 0) / allMatchupPoints.length
+          : 120
+
+      console.log(
+        "[v0] League average calculated:",
+        leagueAverage,
+        "from",
+        allMatchupPoints.length,
+        "teams with points",
+      )
+
+      const teamData = {
+        rosterId: team.roster_id,
+        teamName: user?.metadata?.team_name || `Team ${team.roster_id}`,
+        ownerName: user?.display_name || "Unknown",
+        handle: user?.metadata?.username || user?.display_name?.toLowerCase().replace(/\s+/g, "") || "unknown",
+        avatar: avatarUrl(user?.avatar),
+        seed: `(#${roster?.settings?.rank || "—"})`,
+        points,
+        projection,
+        winProbability: 0.5,
       }
-    })
-    .filter(Boolean) as ProcessedMatchup[]
+
+      const leagueData = {
+        rosterId: 999,
+        teamName: "League Average",
+        ownerName: "League Avg",
+        handle: "league",
+        avatar: null,
+        seed: "",
+        points: null,
+        projection: leagueAverage,
+        winProbability: 0.5,
+      }
+
+      const teamScore = teamData.points !== null ? teamData.points : teamData.projection
+      teamData.winProbability = 1 / (1 + Math.exp(-(teamScore - leagueAverage) / 25))
+      leagueData.winProbability = 1 - teamData.winProbability
+
+      processedMatchups.push({
+        matchupId: team.roster_id,
+        teams: [teamData, leagueData] as [MatchupTeam, MatchupTeam],
+      })
+    }
+  })
+
+  return processedMatchups
 }
 
 function calculateProjection(roster: any, allRosters: any[], currentWeek: number): number {
-  const seasonAvg = roster?.settings?.fpts || 0
-  return seasonAvg > 0 ? seasonAvg : 100
+  const seasonAvg = roster?.settings?.fpts || roster?.settings?.fpts_decimal || 0
+  return seasonAvg > 0 ? seasonAvg : 120
 }

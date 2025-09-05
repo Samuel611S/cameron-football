@@ -287,140 +287,224 @@ export async function getDraftsData(leagueId: string) {
 }
 
 export async function getMatchupsData(leagueId: string, week: number) {
-  const [users, rosters, matchups] = await Promise.all([
-    getUsers(leagueId),
-    getRosters(leagueId),
-    getMatchups(leagueId, week),
-  ])
+  console.log(`[v0] Fetching matchups data for league ${leagueId}, week ${week}`)
 
-  // Create roster lookup map
-  const rosterMap = new Map(rosters.map((r) => [r.roster_id, r]))
-  const userMap = new Map(users.map((u) => [u.user_id, u]))
+  try {
+    const [users, rosters, matchups] = await Promise.all([
+      getUsers(leagueId),
+      getRosters(leagueId),
+      getMatchups(leagueId, week),
+    ])
 
-  const projections = new Map<number, number>()
-  const maxLookback = Math.min(2, week - 1) // Only look back 2 weeks max
+    console.log(`[v0] Retrieved ${users.length} users, ${rosters.length} rosters, ${matchups.length} matchups`)
 
-  if (maxLookback > 0) {
-    // Batch fetch past matchups for projection calculation
-    const pastWeeks = Array.from({ length: maxLookback }, (_, i) => week - 1 - i)
-    const pastMatchupsPromises = pastWeeks.map((w) => getMatchups(leagueId, w).catch(() => []))
-    const allPastMatchups = await Promise.all(pastMatchupsPromises)
-
-    for (const roster of rosters) {
-      let totalPoints = 0
-      let weekCount = 0
-
-      // Process all past matchups for this roster
-      for (const pastMatchups of allPastMatchups) {
-        const pastMatchup = pastMatchups.find((m) => m.roster_id === roster.roster_id)
-        if (pastMatchup && pastMatchup.points > 0) {
-          totalPoints += pastMatchup.points
-          weekCount++
-        }
+    if (!matchups || matchups.length === 0) {
+      console.log(`[v0] ERROR: No matchups found for week ${week}`)
+      return {
+        matchups: [],
+        error: `No matchups found for week ${week}. This could mean:
+        • The week hasn't started yet
+        • The league hasn't been set up for this week
+        • This is a special league type that doesn't use traditional matchups`,
+        week,
+        leagueId,
       }
-
-      // Use season average if no recent data
-      const projection =
-        weekCount > 0
-          ? totalPoints / weekCount
-          : (roster.settings.fpts + roster.settings.fpts_decimal / 100) /
-            Math.max(1, roster.settings.wins + roster.settings.losses + roster.settings.ties)
-
-      projections.set(roster.roster_id, projection || 100) // Default to 100 if no data
     }
-  } else {
-    // No past data available, use season averages
-    for (const roster of rosters) {
-      const projection =
-        (roster.settings.fpts + roster.settings.fpts_decimal / 100) /
-        Math.max(1, roster.settings.wins + roster.settings.losses + roster.settings.ties)
-      projections.set(roster.roster_id, projection || 100)
+
+    // Check if matchups have meaningful data
+    const matchupsWithPoints = matchups.filter((m) => m.points && m.points > 0)
+    const matchupsWithStarters = matchups.filter((m) => m.starters && m.starters.length > 0)
+
+    if (matchupsWithPoints.length === 0 && matchupsWithStarters.length === 0) {
+      console.log(`[v0] WARNING: Matchups exist but no points or starters set`)
+      return {
+        matchups: [],
+        error: `Week ${week} matchups exist but games haven't started yet:
+        • ${matchups.length} matchup slots created
+        • 0 teams have scored points
+        • 0 teams have set starting lineups
+        • This week may not have begun or lineups aren't locked`,
+        week,
+        leagueId,
+      }
     }
-  }
 
-  // Group matchups by matchup_id
-  const matchupGroups = new Map<number, SleeperMatchup[]>()
+    // Create roster lookup map
+    const rosterMap = new Map(rosters.map((r) => [r.roster_id, r]))
+    const userMap = new Map(users.map((u) => [u.user_id, u]))
 
-  for (const matchup of matchups) {
-    if (!matchupGroups.has(matchup.matchup_id)) {
-      matchupGroups.set(matchup.matchup_id, [])
+    const projections = new Map<number, number>()
+    const maxLookback = Math.min(2, week - 1)
+
+    if (maxLookback > 0) {
+      const pastWeeks = Array.from({ length: maxLookback }, (_, i) => week - 1 - i)
+      const pastMatchupsPromises = pastWeeks.map((w) => getMatchups(leagueId, w).catch(() => []))
+      const allPastMatchups = await Promise.all(pastMatchupsPromises)
+
+      for (const roster of rosters) {
+        let totalPoints = 0
+        let weekCount = 0
+
+        for (const pastMatchups of allPastMatchups) {
+          const pastMatchup = pastMatchups.find((m) => m.roster_id === roster.roster_id)
+          if (pastMatchup && pastMatchup.points > 0) {
+            totalPoints += pastMatchup.points
+            weekCount++
+          }
+        }
+
+        const projection =
+          weekCount > 0
+            ? totalPoints / weekCount
+            : (roster.settings.fpts + roster.settings.fpts_decimal / 100) /
+              Math.max(1, roster.settings.wins + roster.settings.losses + roster.settings.ties)
+
+        projections.set(roster.roster_id, projection || 100)
+      }
+    } else {
+      for (const roster of rosters) {
+        const projection =
+          (roster.settings.fpts + roster.settings.fpts_decimal / 100) /
+          Math.max(1, roster.settings.wins + roster.settings.losses + roster.settings.ties)
+        projections.set(roster.roster_id, projection || 100)
+      }
     }
-    matchupGroups.get(matchup.matchup_id)!.push(matchup)
-  }
 
-  // Convert to matchup pairs
-  return Array.from(matchupGroups.entries())
-    .map(([matchupId, teams]) => {
-      const teamData = teams.map((team) => {
-        const roster = rosterMap.get(team.roster_id)
-        const user = roster ? userMap.get(roster.owner_id) : null
-        const projection = projections.get(team.roster_id) || 100
+    // Group matchups by matchup_id
+    const matchupGroups = new Map<number, SleeperMatchup[]>()
+
+    for (const matchup of matchups) {
+      if (!matchupGroups.has(matchup.matchup_id)) {
+        matchupGroups.set(matchup.matchup_id, [])
+      }
+      matchupGroups.get(matchup.matchup_id)!.push(matchup)
+    }
+
+    // Convert to matchup pairs
+    const processedMatchups = Array.from(matchupGroups.entries())
+      .map(([matchupId, teams]) => {
+        const teamData = teams.map((team) => {
+          const roster = rosterMap.get(team.roster_id)
+          const user = roster ? userMap.get(roster.owner_id) : null
+          const projection = projections.get(team.roster_id) || 100
+
+          return {
+            rosterId: team.roster_id,
+            matchupId: team.matchup_id,
+            points: team.points || null,
+            projection,
+            teamName: user?.metadata?.team_name || user?.display_name || "Unknown Team",
+            ownerName: user?.display_name || "Unknown Owner",
+            avatar: user?.avatar ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : null,
+            seed: rosters.findIndex((r) => r.roster_id === team.roster_id) + 1,
+          }
+        })
+
+        // Calculate win probabilities
+        if (teamData.length === 2) {
+          const [teamA, teamB] = teamData
+          const projDiff = (teamA.points || teamA.projection) - (teamB.points || teamB.projection)
+          const winProbA = 1 / (1 + Math.exp(-projDiff / 25))
+          const winProbB = 1 - winProbA
+
+          teamA.winProbability = winProbA
+          teamB.winProbability = winProbB
+        }
 
         return {
-          rosterId: team.roster_id,
-          matchupId: team.matchup_id,
-          points: team.points || null,
-          projection,
-          teamName: user?.metadata?.team_name || user?.display_name || "Unknown Team",
-          ownerName: user?.display_name || "Unknown Owner",
-          avatar: user?.avatar ? `https://sleepercdn.com/avatars/thumbs/${user.avatar}` : null,
-          seed: rosters.findIndex((r) => r.roster_id === team.roster_id) + 1,
+          matchupId,
+          teams: teamData,
         }
       })
+      .sort((a, b) => a.matchupId - b.matchupId)
 
-      // Calculate win probabilities using logistic function
-      if (teamData.length === 2) {
-        const [teamA, teamB] = teamData
-        const projDiff = (teamA.points || teamA.projection) - (teamB.points || teamB.projection)
-        const winProbA = 1 / (1 + Math.exp(-projDiff / 25))
-        const winProbB = 1 - winProbA
+    console.log(`[v0] Successfully processed ${processedMatchups.length} matchups`)
 
-        teamA.winProbability = winProbA
-        teamB.winProbability = winProbB
-      }
-
-      return {
-        matchupId,
-        teams: teamData,
-      }
-    })
-    .sort((a, b) => a.matchupId - b.matchupId)
+    return {
+      matchups: processedMatchups,
+      error: null,
+      week,
+      leagueId,
+      stats: {
+        totalMatchups: matchups.length,
+        matchupsWithPoints: matchupsWithPoints.length,
+        matchupsWithStarters: matchupsWithStarters.length,
+      },
+    }
+  } catch (error) {
+    console.error(`[v0] Error fetching matchups data:`, error)
+    return {
+      matchups: [],
+      error: `Failed to load matchups for week ${week}: ${error}`,
+      week,
+      leagueId,
+    }
+  }
 }
 
 export async function getLatestWeekWithData(leagueId: string): Promise<number> {
-  // Try weeks 1-18 in reverse order to find latest with meaningful data
-  for (let week = 18; week >= 1; week--) {
+  console.log(`[v0] Fetching latest week data for league: ${leagueId}`)
+
+  // Calculate current NFL week based on 2025 season start (September 4, 2025)
+  const seasonStart = new Date("2025-09-04")
+  const now = new Date()
+  const daysSinceStart = Math.floor((now.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24))
+  const calculatedCurrentWeek = Math.max(1, Math.min(18, Math.floor(daysSinceStart / 7) + 1))
+
+  console.log(`[v0] Calculated current NFL week: ${calculatedCurrentWeek}`)
+
+  // Check weeks 1 through current week for actual game data
+  for (let week = 1; week <= calculatedCurrentWeek; week++) {
     try {
+      console.log(`[v0] Checking week ${week} for league ${leagueId}`)
       const matchups = await getMatchups(leagueId, week)
-      // Check if matchups exist AND have actual points data
-      if (matchups.length > 0 && matchups.some((m) => m.points && m.points > 0)) {
-        console.log(`[v0] Found latest week with data: ${week}`)
+
+      if (!matchups || matchups.length === 0) {
+        console.log(`[v0] Week ${week}: No matchups found`)
+        continue
+      }
+
+      console.log(`[v0] Week ${week}: Found ${matchups.length} matchups`)
+
+      // Check for actual game data (points scored)
+      const matchupsWithPoints = matchups.filter((m) => m.points && m.points > 0)
+      if (matchupsWithPoints.length > 0) {
+        console.log(`[v0] Week ${week}: Found ${matchupsWithPoints.length} matchups with points - USING THIS WEEK`)
         return week
       }
-    } catch {
-      // Continue to previous week
+
+      // Check for started lineups (players in starting positions)
+      const matchupsWithStarters = matchups.filter((m) => m.starters && m.starters.length > 0)
+      if (matchupsWithStarters.length > 0) {
+        console.log(`[v0] Week ${week}: Found ${matchupsWithStarters.length} matchups with starters - USING THIS WEEK`)
+        return week
+      }
+
+      console.log(`[v0] Week ${week}: Matchups exist but no points or starters - likely future week`)
+    } catch (error) {
+      console.log(`[v0] Week ${week}: API error - ${error}`)
+      continue
     }
   }
 
-  // Calculate current NFL week more accurately for 2025 season
-  const currentDate = new Date()
-  const seasonStart = new Date(2025, 8, 4) // September 4, 2025 (2025 NFL season start)
-  const daysSinceStart = Math.floor((currentDate.getTime() - seasonStart.getTime()) / (24 * 60 * 60 * 1000))
+  // If no weeks have game data, check if this is a special league type
+  try {
+    const league = await getLeague(leagueId)
+    const leagueType = league.metadata?.league_type || "standard"
 
-  // NFL weeks typically start on Tuesday and run through Monday
-  let currentWeek = Math.floor(daysSinceStart / 7) + 1
+    console.log(`[v0] No weeks with game data found. League type: ${leagueType}`)
 
-  // Clamp to valid range and handle pre-season
-  if (daysSinceStart < 0) {
-    currentWeek = 1 // Pre-season, default to week 1
-  } else if (currentWeek > 18) {
-    currentWeek = 18 // Post-season, cap at week 18
-  } else if (currentWeek < 1) {
-    currentWeek = 1 // Minimum week 1
+    if (leagueType === "survivor" || leagueType === "pick_em") {
+      console.log(`[v0] Special league type detected - using week 1`)
+      return 1
+    }
+
+    // For regular leagues, use current calculated week
+    console.log(`[v0] Regular league - using calculated current week: ${calculatedCurrentWeek}`)
+    return calculatedCurrentWeek
+  } catch (error) {
+    console.log(`[v0] Error fetching league info: ${error}`)
+    console.log(`[v0] Defaulting to week 1`)
+    return 1
   }
-
-  // For special league types (Survivor, Pick Em) that don't have traditional matchups,
-  // default to week 1 instead of calculated current week
-  console.log(`[v0] No weeks with points data found, using week 1 for special league types`)
-  return 1
 }
