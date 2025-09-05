@@ -3,15 +3,14 @@ import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
-import { config } from "@/config/config"
-import { Navigation } from "@/components/navigation"
+import { siteConfig } from "@/config/config"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Suspense } from "react"
 import "./globals.css"
+import { Suspense } from "react"
 
 export const metadata: Metadata = {
-  title: config.siteTitle,
-  description: `${config.siteTitle} - Season ${config.season}`,
+  title: siteConfig.siteTitle,
+  description: `${siteConfig.siteTitle} - Season ${siteConfig.season}`,
   generator: "v0.app",
 }
 
@@ -26,19 +25,18 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <div className="min-h-screen bg-background">
             <Suspense fallback={<div>Loading...</div>}>
-              <Navigation />
+              <main className="container mx-auto px-4 py-8">{children}</main>
+
+              <footer className="border-t border-border bg-card mt-16">
+                <div className="container mx-auto px-4 py-6 text-center text-muted-foreground">
+                  <p>
+                    {siteConfig.siteTitle} - Season {siteConfig.season}
+                  </p>
+                  <p className="text-sm mt-2">Powered by Sleeper API</p>
+                  <p className="text-sm mt-1">Made by {siteConfig.madeBy}</p>
+                </div>
+              </footer>
             </Suspense>
-
-            <main className="container mx-auto px-4 py-8">{children}</main>
-
-            <footer className="border-t border-border bg-card mt-16">
-              <div className="container mx-auto px-4 py-6 text-center text-muted-foreground">
-                <p>
-                  {config.siteTitle} - Season {config.season}
-                </p>
-                <p className="text-sm mt-2">Powered by Sleeper API</p>
-              </div>
-            </footer>
           </div>
         </ThemeProvider>
         <Analytics />
