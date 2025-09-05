@@ -122,6 +122,13 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Added mobile safe area support for TV and mobile devices */
+  @supports (height: 100svh) {
+    body {
+      min-height: 100svh;
+    }
+  }
 }
 
 /* Added custom scrollbar styling for better visual consistency */

@@ -150,31 +150,35 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[600px] space-y-8">
-        <div className="text-center space-y-6">
-          <div className="relative">
-            <h1 className="text-6xl font-bold text-balance animate-pulse">
-              {currentLeague?.name || "Fantasy Football Hub"}
-            </h1>
-            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-32 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+      <div className="min-h-[100svh] w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100">
+        <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto px-3 sm:px-4 py-4">
+          <div className="text-center space-y-6">
+            <div className="relative">
+              <h1 className="text-[clamp(1.5rem,4vw,3rem)] font-bold text-balance animate-pulse">
+                {currentLeague?.name || "Fantasy Football Hub"}
+              </h1>
+              <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-32 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+            </div>
+            <p className="text-[clamp(1rem,2.5vw,1.5rem)] text-slate-400 animate-pulse">
+              Loading {siteConfig.season} season matchups...
+            </p>
           </div>
-          <p className="text-2xl text-muted-foreground animate-pulse">Loading {siteConfig.season} season matchups...</p>
-        </div>
 
-        <div className="relative">
-          <div className="w-24 h-24 border-6 border-slate-200 dark:border-slate-700 rounded-full animate-spin">
-            <div className="absolute top-0 left-0 w-24 h-24 border-6 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="relative flex justify-center mt-8">
+            <div className="w-24 h-24 border-6 border-slate-700 rounded-full animate-spin">
+              <div className="absolute top-0 left-0 w-24 h-24 border-6 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+            </div>
           </div>
-        </div>
 
-        <div className="flex space-x-3">
-          <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-          <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-          <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-        </div>
+          <div className="flex justify-center space-x-3 mt-8">
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+          </div>
 
-        <div className="w-80 h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          <div className="w-full max-w-80 mx-auto h-3 bg-slate-800 rounded-full overflow-hidden mt-8">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          </div>
         </div>
       </div>
     )
@@ -182,122 +186,130 @@ export default function HomePage() {
 
   return (
     <ErrorBoundary fallback={errorFallback}>
-      <div className={`space-y-10 transition-opacity duration-300 ${fadeClass} px-4 py-6`}>
-        <div className="text-center space-y-4">
-          <h1 className="text-6xl font-bold text-balance leading-tight">
-            {currentLeague.name} — Week {currentWeek} Matchups
-          </h1>
-          <p className="text-2xl text-muted-foreground">
-            {siteConfig.season} Season • {currentLeague.type} League
-          </p>
-          <p className="text-lg text-muted-foreground/70">Auto-updating every 5 minutes • Week detection: automatic</p>
-        </div>
+      <div className="min-h-[100svh] w-full flex flex-col items-center justify-start bg-slate-950 text-slate-100">
+        <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto px-3 sm:px-4 py-4 w-full">
+          <div className={`space-y-6 transition-opacity duration-300 ${fadeClass}`}>
+            <div className="text-center space-y-4">
+              <h1 className="text-[clamp(1.25rem,2.5vw,1.75rem)] font-bold text-balance leading-tight">
+                {currentLeague.name} — Week {currentWeek} Matchups
+              </h1>
+              <p className="text-[clamp(0.9rem,2vw,1.1rem)] text-slate-400">
+                {siteConfig.season} Season • {currentLeague.type} League
+              </p>
+              <p className="text-[clamp(0.8rem,1.5vw,0.95rem)] text-slate-500">
+                Auto-updating every 5 minutes • Week detection: automatic
+              </p>
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {matchups.map((matchup) => (
-            <div
-              key={matchup.matchupId}
-              className="rounded-3xl bg-slate-900 border-2 border-slate-800 p-6 text-slate-100 shadow-2xl"
-            >
-              {/* Top row: WIN% badges, points/projections, VS pill */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`px-4 py-2 rounded-full text-lg font-bold ${
-                      matchup.teams[0].winProbability >= 0.5
-                        ? "bg-green-600/30 text-green-300 border border-green-500/50"
-                        : "bg-red-600/30 text-red-300 border border-red-500/50"
-                    }`}
-                  >
-                    WIN {Math.round(matchup.teams[0].winProbability * 100)}%
-                  </span>
-                  <span className="text-4xl font-bold">
-                    {matchup.teams[0].points !== null
-                      ? matchup.teams[0].points.toFixed(1)
-                      : matchup.teams[0].projection.toFixed(1)}
-                  </span>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              {matchups.map((matchup) => (
+                <div
+                  key={matchup.matchupId}
+                  className="w-full rounded-2xl border border-slate-800 bg-slate-900 shadow-sm p-4 md:p-6"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <span
+                        className={`px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[clamp(0.75rem,1.5vw,0.9rem)] font-bold ${
+                          matchup.teams[0].winProbability >= 0.5
+                            ? "bg-green-600/30 text-green-300 border border-green-500/50"
+                            : "bg-red-600/30 text-red-300 border border-red-500/50"
+                        }`}
+                      >
+                        WIN {Math.round(matchup.teams[0].winProbability * 100)}%
+                      </span>
+                      <span className="text-[clamp(1.25rem,3vw,2rem)] font-bold">
+                        {matchup.teams[0].points !== null
+                          ? matchup.teams[0].points.toFixed(1)
+                          : matchup.teams[0].projection.toFixed(1)}
+                      </span>
+                    </div>
 
-                <div className="px-4 py-2 rounded-full bg-slate-800 text-lg font-bold border border-slate-700">VS</div>
+                    <div className="px-2 sm:px-4 py-1 sm:py-2 rounded-full bg-slate-800 text-[clamp(0.8rem,1.5vw,1rem)] font-bold border border-slate-700">
+                      VS
+                    </div>
 
-                <div className="flex items-center gap-4">
-                  <span className="text-4xl font-bold">
-                    {matchup.teams[1].points !== null
-                      ? matchup.teams[1].points.toFixed(1)
-                      : matchup.teams[1].projection.toFixed(1)}
-                  </span>
-                  <span
-                    className={`px-4 py-2 rounded-full text-lg font-bold ${
-                      matchup.teams[1].winProbability >= 0.5
-                        ? "bg-green-600/30 text-green-300 border border-green-500/50"
-                        : "bg-red-600/30 text-red-300 border border-red-500/50"
-                    }`}
-                  >
-                    WIN {Math.round(matchup.teams[1].winProbability * 100)}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Bottom row: avatars, names, handles, seeds, progress bars */}
-              <div className="flex items-center justify-between gap-6">
-                {matchup.teams.map((team, index) => (
-                  <div key={team.rosterId} className="flex items-center gap-4 flex-1">
-                    {/* Enhanced avatar for TV viewing */}
-                    {team.avatar ? (
-                      <img
-                        src={team.avatar || "/placeholder.svg"}
-                        alt={team.ownerName}
-                        className="w-16 h-16 rounded-full border-2 border-slate-700 shadow-lg"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center shadow-lg">
-                        <span className="text-xl font-bold text-slate-300">
-                          {team.ownerName.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-xl truncate">{team.ownerName}</div>
-                      <div className="text-lg text-slate-400 truncate">
-                        @{team.handle} {team.seed}
-                      </div>
-
-                      {/* Enhanced progress bar for TV viewing */}
-                      <div className="mt-3 h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-1000 shadow-inner"
-                          style={{
-                            width: `${
-                              ((team.points !== null ? team.points : team.projection) /
-                                Math.max(
-                                  matchup.teams[0].points !== null
-                                    ? matchup.teams[0].points
-                                    : matchup.teams[0].projection,
-                                  matchup.teams[1].points !== null
-                                    ? matchup.teams[1].points
-                                    : matchup.teams[1].projection,
-                                )) *
-                              100
-                            }%`,
-                          }}
-                        />
-                      </div>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <span className="text-[clamp(1.25rem,3vw,2rem)] font-bold">
+                        {matchup.teams[1].points !== null
+                          ? matchup.teams[1].points.toFixed(1)
+                          : matchup.teams[1].projection.toFixed(1)}
+                      </span>
+                      <span
+                        className={`px-2 sm:px-4 py-1 sm:py-2 rounded-full text-[clamp(0.75rem,1.5vw,0.9rem)] font-bold ${
+                          matchup.teams[1].winProbability >= 0.5
+                            ? "bg-green-600/30 text-green-300 border border-green-500/50"
+                            : "bg-red-600/30 text-red-300 border border-red-500/50"
+                        }`}
+                      >
+                        WIN {Math.round(matchup.teams[1].winProbability * 100)}%
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {matchups.length === 0 && !error && (
-          <div className="text-center py-16">
-            <div className="text-8xl mb-6">📊</div>
-            <p className="text-3xl text-muted-foreground">No matchup data available for this week.</p>
-            <p className="text-xl text-muted-foreground/70 mt-2">The display will automatically retry.</p>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    {matchup.teams.map((team, index) => (
+                      <div key={team.rosterId} className="flex items-center gap-3 flex-1 min-w-0">
+                        {team.avatar ? (
+                          <img
+                            src={team.avatar || "/placeholder.svg"}
+                            alt={team.ownerName}
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-slate-700 shadow-lg flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                            <span className="text-[clamp(0.7rem,1.2vw,0.8rem)] font-bold text-slate-300">
+                              {team.ownerName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-[clamp(0.9rem,1.8vw,1.1rem)] truncate">{team.ownerName}</div>
+                          <div className="text-[clamp(0.8rem,1.5vw,0.95rem)] text-slate-400 truncate">
+                            @{team.handle} {team.seed}
+                          </div>
+
+                          <div className="mt-2 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700 w-full">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-1000 shadow-inner"
+                              style={{
+                                width: `${
+                                  ((team.points !== null ? team.points : team.projection) /
+                                    Math.max(
+                                      matchup.teams[0].points !== null
+                                        ? matchup.teams[0].points
+                                        : matchup.teams[0].projection,
+                                      matchup.teams[1].points !== null
+                                        ? matchup.teams[1].points
+                                        : matchup.teams[1].projection,
+                                    )) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {matchups.length === 0 && !error && (
+              <div className="text-center py-16">
+                <div className="text-[clamp(3rem,8vw,5rem)] mb-6">📊</div>
+                <p className="text-[clamp(1.1rem,2.5vw,1.5rem)] text-slate-400">
+                  No matchup data available for this week.
+                </p>
+                <p className="text-[clamp(0.9rem,2vw,1.1rem)] text-slate-500 mt-2">
+                  The display will automatically retry.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </ErrorBoundary>
   )
@@ -338,7 +350,6 @@ function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[]
         }
       })
 
-      // Calculate win probabilities using the specified formula
       const projA = processedTeams[0].points !== null ? processedTeams[0].points : processedTeams[0].projection
       const projB = processedTeams[1].points !== null ? processedTeams[1].points : processedTeams[1].projection
 
@@ -354,7 +365,6 @@ function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[]
 }
 
 function calculateProjection(roster: any, allRosters: any[], currentWeek: number): number {
-  // Use rolling average of last 3 weeks PF, fallback to season average or default
   const seasonAvg = roster?.settings?.fpts || 0
-  return seasonAvg > 0 ? seasonAvg : 100 // Default projection
+  return seasonAvg > 0 ? seasonAvg : 100
 }
