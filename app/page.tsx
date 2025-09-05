@@ -150,7 +150,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-[100svh] w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100">
+      <div className="min-h-[100svh] w-full flex flex-col items-center justify-center bg-black text-slate-100">
         <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto px-3 sm:px-4 py-4">
           <div className="text-center space-y-6">
             <div className="relative">
@@ -165,7 +165,7 @@ export default function HomePage() {
           </div>
 
           <div className="relative flex justify-center mt-8">
-            <div className="w-24 h-24 border-6 border-slate-700 rounded-full animate-spin">
+            <div className="w-24 h-24 border-6 border-black rounded-full animate-spin">
               <div className="absolute top-0 left-0 w-24 h-24 border-6 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function HomePage() {
             <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
           </div>
 
-          <div className="w-full max-w-80 mx-auto h-3 bg-slate-800 rounded-full overflow-hidden mt-8">
+          <div className="w-full max-w-80 mx-auto h-3 bg-black rounded-full overflow-hidden mt-8 border border-slate-700">
             <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function HomePage() {
 
   return (
     <ErrorBoundary fallback={errorFallback}>
-      <div className="min-h-[100svh] w-full flex flex-col items-center justify-start bg-slate-950 text-slate-100">
+      <div className="min-h-[100svh] w-full flex flex-col items-center justify-start bg-black text-slate-100">
         <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto px-3 sm:px-4 py-4 w-full">
           <div className={`space-y-6 transition-opacity duration-300 ${fadeClass}`}>
             <div className="text-center space-y-4">
@@ -205,7 +205,7 @@ export default function HomePage() {
               {matchups.map((matchup) => (
                 <div
                   key={matchup.matchupId}
-                  className="w-full rounded-2xl border border-slate-800 bg-slate-900 shadow-sm p-4 md:p-6"
+                  className="w-full rounded-2xl border border-black bg-black shadow-sm p-4 md:p-6"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div className="flex items-center gap-2 sm:gap-4">
@@ -225,7 +225,7 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 rounded-full bg-slate-800 text-[clamp(0.8rem,1.5vw,1rem)] font-bold border border-slate-700">
+                    <div className="px-2 sm:px-4 py-1 sm:py-2 rounded-full bg-black text-[clamp(0.8rem,1.5vw,1rem)] font-bold border border-black">
                       VS
                     </div>
 
@@ -254,10 +254,10 @@ export default function HomePage() {
                           <img
                             src={team.avatar || "/placeholder.svg"}
                             alt={team.ownerName}
-                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-slate-700 shadow-lg flex-shrink-0"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-black shadow-lg flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black border-2 border-black flex items-center justify-center shadow-lg flex-shrink-0">
                             <span className="text-[clamp(0.7rem,1.2vw,0.8rem)] font-bold text-slate-300">
                               {team.ownerName.charAt(0).toUpperCase()}
                             </span>
@@ -270,7 +270,7 @@ export default function HomePage() {
                             @{team.handle} {team.seed}
                           </div>
 
-                          <div className="mt-2 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700 w-full">
+                          <div className="mt-2 h-2 bg-black rounded-full overflow-hidden border border-black w-full">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-1000 shadow-inner"
                               style={{

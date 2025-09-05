@@ -23,12 +23,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen bg-black">
             <Suspense fallback={<div>Loading...</div>}>
               <main className="container mx-auto px-4 py-8">{children}</main>
 
-              <footer className="border-t border-border bg-card mt-16">
-                <div className="container mx-auto px-4 py-6 text-center text-muted-foreground">
+              <footer className="border-t border-black bg-black mt-16">
+                <div className="container mx-auto px-4 py-6 text-center text-slate-100">
                   <p>
                     {siteConfig.siteTitle} - Season {siteConfig.season}
                   </p>
