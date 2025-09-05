@@ -124,10 +124,20 @@
   }
 
   /* Added mobile safe area support for TV and mobile devices */
+  html,
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+
   @supports (height: 100svh) {
     body {
       min-height: 100svh;
     }
+  }
+
+  /* Added TV mode scaler for large screen optimization */
+  html[data-tv="1"] {
+    font-size: clamp(16px, 2.2vw, 24px);
   }
 }
 

@@ -1,7 +1,6 @@
 export const siteConfig = {
   siteTitle: "Fantasy Football Hub",
   season: "2025",
-  madeBy: "Sam's",
   constitutionMarkdownPath: "/content/constitution.md",
   resources: [
     { label: "DynastyFF Subreddit", url: "https://www.reddit.com/r/DynastyFF/" },
