@@ -525,7 +525,7 @@ function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users:
         projectedPoints: roster?.settings?.fpts || roster?.settings?.fpts_decimal || 0,
       }
     })
-    .sort((a, b) => b.points - a.points)
+    .sort((a, b) => a.points - b.points)
 
   const totalPoints = teamScores.reduce((sum, team) => sum + team.points, 0)
   const leagueAverage = totalPoints / teamScores.length
@@ -535,138 +535,80 @@ function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users:
     ...team,
     rank: index + 1,
     safetyPercentage: Math.min(95, Math.max(5, (team.points / maxPoints) * 100)),
-    zone: index >= teamScores.length - 1 ? "chop" : index >= teamScores.length - 3 ? "danger" : "safe",
+    zone: index < 3 ? "danger" : "safety",
   }))
 
   return (
-    <div className="w-full rounded-2xl border border-gray-600 bg-black shadow-sm p-4 md:p-6">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-slate-100">Chopping Block</h3>
-            <p className="text-sm text-slate-400 mt-1">Lowest scorer gets eliminated</p>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="w-full rounded-2xl border border-red-600/50 bg-black shadow-sm p-4 md:p-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 text-red-400">⚔️</div>
+            <span className="text-lg font-bold text-red-400 uppercase tracking-wider">Danger Zone</span>
+            <div className="flex-1 h-px bg-red-500"></div>
           </div>
-          <div className="flex items-center gap-2 text-cyan-400">
-            <span className="text-sm font-medium">WEEK 1</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+
+          <div className="space-y-2">
+            {teamsWithSafety
+              .filter((team) => team.zone === "danger")
+              .map((team) => (
+                <CompactTeamRow key={team.rosterId} team={team} />
+              ))}
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-12 gap-4 px-3 py-2 text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-gray-600">
-          <div className="col-span-1">RANK</div>
-          <div className="col-span-5">TEAM</div>
-          <div className="col-span-3 text-center">SAFE %</div>
-          <div className="col-span-3 text-right">PROJ/F</div>
-        </div>
+      <div className="w-full rounded-2xl border border-green-600/50 bg-black shadow-sm p-4 md:p-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 text-green-400">✅</div>
+            <span className="text-lg font-bold text-green-400 uppercase tracking-wider">Safety Zone</span>
+            <div className="flex-1 h-px bg-green-500"></div>
+          </div>
 
-        <div className="space-y-1">
-          {teamsWithSafety.filter((team) => team.zone === "chop").length > 0 && (
-            <>
-              <div className="flex items-center gap-2 px-3 py-2">
-                <div className="w-4 h-4 text-red-400">⚔️</div>
-                <span className="text-sm font-bold text-red-400 uppercase tracking-wider">CHOP ZONE</span>
-                <div className="flex-1 h-px bg-red-500"></div>
-              </div>
-              {teamsWithSafety
-                .filter((team) => team.zone === "chop")
-                .map((team) => (
-                  <TeamRow key={team.rosterId} team={team} />
-                ))}
-            </>
-          )}
-
-          {teamsWithSafety.filter((team) => team.zone === "danger").length > 0 && (
-            <>
-              <div className="flex items-center gap-2 px-3 py-2 mt-4">
-                <div className="w-4 h-4 text-yellow-400">⚠️</div>
-                <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">DANGER</span>
-                <div className="flex-1 h-px bg-yellow-500"></div>
-              </div>
-              {teamsWithSafety
-                .filter((team) => team.zone === "danger")
-                .map((team) => (
-                  <TeamRow key={team.rosterId} team={team} />
-                ))}
-            </>
-          )}
-
-          {teamsWithSafety.filter((team) => team.zone === "safe").length > 0 && (
-            <>
-              <div className="flex items-center gap-2 px-3 py-2 mt-4">
-                <div className="w-4 h-4 text-green-400">✅</div>
-                <span className="text-sm font-bold text-green-400 uppercase tracking-wider">SAFE</span>
-                <div className="flex-1 h-px bg-green-500"></div>
-              </div>
-              {teamsWithSafety
-                .filter((team) => team.zone === "safe")
-                .map((team) => (
-                  <TeamRow key={team.rosterId} team={team} />
-                ))}
-            </>
-          )}
+          <div className="space-y-2">
+            {teamsWithSafety
+              .filter((team) => team.zone === "safety")
+              .map((team) => (
+                <CompactTeamRow key={team.rosterId} team={team} />
+              ))}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function TeamRow({ team }: { team: any }) {
-  const zoneColors = {
-    chop: "text-red-300",
-    danger: "text-yellow-300",
-    safe: "text-slate-200",
-  }
-
-  const progressColors = {
-    chop: "from-red-500 to-red-400",
-    danger: "from-yellow-500 to-yellow-400",
-    safe: "from-green-500 to-green-400",
+function CompactTeamRow({ team }: { team: any }) {
+  const getScoreColor = (rank: number) => {
+    if (rank <= 3) return "text-red-300"
+    if (rank >= 7 && rank <= 9) return "text-yellow-300"
+    return "text-slate-200"
   }
 
   return (
-    <div className="grid grid-cols-12 gap-4 items-center px-3 py-3 hover:bg-gray-700/50 rounded-lg transition-colors">
-      <div className="col-span-1">
-        <span className={`text-lg font-bold ${zoneColors[team.zone as keyof typeof zoneColors]}`}>{team.rank}</span>
-      </div>
+    <div className="flex items-center justify-between px-3 py-2 hover:bg-gray-700/30 rounded-lg transition-colors">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span className={`text-sm font-bold w-6 ${getScoreColor(team.rank)}`}>#{team.rank}</span>
 
-      <div className="col-span-5 flex items-center gap-3">
         {team.avatar ? (
           <img
             src={team.avatar || "/placeholder.svg"}
             alt={team.ownerName}
-            className="w-10 h-10 rounded-full border-2 border-gray-500"
+            className="w-8 h-8 rounded-full border border-gray-500 flex-shrink-0"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gray-600 border-2 border-gray-500 flex items-center justify-center">
-            <span className="text-sm font-bold text-white">{team.ownerName.charAt(0).toUpperCase()}</span>
+          <div className="w-8 h-8 rounded-full bg-gray-600 border border-gray-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-white">{team.ownerName.charAt(0).toUpperCase()}</span>
           </div>
         )}
+
         <div className="min-w-0 flex-1">
-          <div className={`font-bold text-base truncate ${zoneColors[team.zone as keyof typeof zoneColors]}`}>
-            Team {team.ownerName}
-          </div>
-          <div className="text-sm text-slate-400 truncate">@{team.handle}</div>
+          <div className={`font-medium text-sm truncate ${getScoreColor(team.rank)}`}>{team.ownerName}</div>
         </div>
       </div>
 
-      <div className="col-span-3 flex flex-col items-center gap-2">
-        <div className="w-full bg-gray-700 rounded-full h-2 border border-gray-600">
-          <div
-            className={`h-full bg-gradient-to-r ${progressColors[team.zone as keyof typeof progressColors]} rounded-full transition-all duration-1000`}
-            style={{ width: `${team.safetyPercentage}%` }}
-          />
-        </div>
-        <span className="text-sm font-medium text-cyan-400">{Math.round(team.safetyPercentage)}%</span>
-      </div>
-
-      <div className="col-span-3 text-right">
-        <div className={`text-xl font-bold tabular-nums ${zoneColors[team.zone as keyof typeof zoneColors]}`}>
-          {team.projectedPoints > 0 ? team.projectedPoints.toFixed(2) : "-"}
-        </div>
-        <div className="text-sm text-slate-400 tabular-nums">{team.points.toFixed(2)}</div>
-      </div>
+      <div className={`text-lg font-bold tabular-nums ${getScoreColor(team.rank)}`}>{team.points.toFixed(1)}</div>
     </div>
   )
 }
@@ -747,7 +689,7 @@ function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[]
         const user = users.find((u) => u.user_id === roster?.owner_id)
 
         const rawPoints = Number(team.points ?? 0)
-        const points = week === 1 && rawPoints === 0 ? null : rawPoints
+        const points = rawPoints === 0 ? null : rawPoints
         const projection = calculateProjection(roster, rosters, week)
 
         return {
@@ -768,58 +710,48 @@ function processMatchupsForDisplay(matchups: any[], users: any[], rosters: any[]
 
       const team1Points = processedTeams[0].points
       const team2Points = processedTeams[1].points
+      const team1Proj = processedTeams[0].projection
+      const team2Proj = processedTeams[1].projection
       const totalPoints = (team1Points || 0) + (team2Points || 0)
 
-      // Pre-game state - both teams have no points
       if (team1Points === null && team2Points === null) {
         winProbA = null
-      }
-      // Both teams have 0 or negative points - no meaningful probability
-      else if ((team1Points || 0) <= 0 && (team2Points || 0) <= 0) {
+      } else if (team1Points === null && team2Points === null && team1Proj > 0 && team2Proj > 0) {
         winProbA = null
-      }
-      // Very early game with minimal scoring - hide probabilities
-      else if (totalPoints < 3) {
+      } else if (totalPoints > 0 && totalPoints < 10) {
+        winProbA = 0.5
+      } else if ((team1Points || 0) <= 0 && (team2Points || 0) <= 0) {
         winProbA = null
-      }
-      // Actual scoring has begun - calculate realistic probabilities
-      else if (team1Points !== null && team2Points !== null) {
+      } else if (team1Points !== null && team2Points !== null) {
         const pointDiff = team1Points - team2Points
 
         if (Math.abs(pointDiff) < 0.1) {
-          winProbA = 0.5 // Essentially tied
+          winProbA = 0.5
         } else {
-          // More aggressive scaling for actual point differences
           const advantage = Math.abs(pointDiff)
           let probabilityShift: number
 
           if (advantage < 5) {
-            probabilityShift = advantage * 0.08 // 8% per point for small differences
+            probabilityShift = advantage * 0.08
           } else if (advantage < 15) {
-            probabilityShift = 0.4 + (advantage - 5) * 0.03 // Slower scaling for larger differences
+            probabilityShift = 0.4 + (advantage - 5) * 0.03
           } else {
-            probabilityShift = 0.7 + Math.min((advantage - 15) * 0.01, 0.2) // Cap at 90%
+            probabilityShift = 0.7 + Math.min((advantage - 15) * 0.01, 0.2)
           }
 
           winProbA = pointDiff > 0 ? 0.5 + probabilityShift : 0.5 - probabilityShift
         }
-      }
-      // Fall back to projections if available
-      else {
-        const proj1 = processedTeams[0].projection
-        const proj2 = processedTeams[1].projection
-
-        if (proj1 > 0 && proj2 > 0) {
-          const projDiff = proj1 - proj2
-          winProbA = 0.5 + (projDiff / 80) * 0.2 // More conservative projection scaling
+      } else {
+        if (team1Proj > 0 && team2Proj > 0) {
+          const projDiff = team1Proj - team2Proj
+          winProbA = 0.5 + (projDiff / 80) * 0.2
         } else {
-          winProbA = null // No meaningful data
+          winProbA = null
         }
       }
 
-      // Clamp to reasonable bounds
       if (winProbA !== null) {
-        winProbA = Math.max(0.15, Math.min(0.85, winProbA))
+        winProbA = Math.max(0.1, Math.min(0.9, winProbA))
       }
 
       processedTeams[0].winProbability = winProbA
