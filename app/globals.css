@@ -1,7 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: oklch(1 0 0);
@@ -138,6 +137,15 @@
   /* Added TV mode scaler for large screen optimization */
   html[data-tv="1"] {
     font-size: clamp(16px, 2.2vw, 24px);
+  }
+  
+  /* TV mode optimizations to reduce flickering */
+  html[data-tv="1"] .transition-opacity {
+    transition: opacity 0.5s ease-in-out;
+  }
+  
+  html[data-tv="1"] .animate-pulse {
+    animation-duration: 2s;
   }
 }
 

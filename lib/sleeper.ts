@@ -1,14 +1,13 @@
 import { allowedLeagueIds } from "@/config/leagues"
 
-const BASE = "https://api.sleeper.app/v1"
-
 async function fetchSleeper(path: string, revalidate = 600) {
   if (!path.startsWith("/league/") && !path.startsWith("/draft/")) {
     throw new Error("blocked path")
   }
 
-  const url = BASE + path
-  console.log("[v0] Fetching Sleeper API:", url)
+  // Use our API route instead of direct Sleeper API call
+  const url = `/api/sleeper${path}`
+  console.log("[v0] Fetching via API route:", url)
 
   const res = await fetch(url, {
     next: { revalidate },
@@ -16,7 +15,7 @@ async function fetchSleeper(path: string, revalidate = 600) {
   })
 
   if (!res.ok) {
-    throw new Error(`Sleeper ${res.status} ${path}`)
+    throw new Error(`API ${res.status} ${path}`)
   }
 
   const raw = await res.text()

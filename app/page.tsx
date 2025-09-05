@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { leagues } from "@/config/leagues"
 import { siteConfig } from "@/config/config"
 import { getUsers, getRosters, getMatchups, getLatestWeekWithData } from "@/lib/sleeper"
@@ -41,10 +39,10 @@ function ErrorBoundary({ children, fallback }: { children: React.ReactNode; fall
   }, [])
 
   if (hasError) {
-    return <>{fallback}</>
+    return <div>{fallback}</div>
   }
 
-  return <>{children}</>
+  return <div>{children}</div>
 }
 
 const LEAGUE_FORMAT: Record<string, "h2h" | "guillotine"> = {
@@ -61,6 +59,8 @@ export default function HomePage() {
   const [currentWeek, setCurrentWeek] = useState<number>(1)
   const [matchups, setMatchups] = useState<ProcessedMatchup[]>([])
   const [loading, setLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
+  const [showLoading, setShowLoading] = useState(true)
   const [fadeClass, setFadeClass] = useState("opacity-100")
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -75,12 +75,13 @@ export default function HomePage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setFadeClass("opacity-0")
-      setLoading(true)
+      setShowLoading(true) // Show loading when switching leagues
       setTimeout(() => {
         setCurrentLeagueIndex((prev) => (prev + 1) % leagues.length)
         setFadeClass("opacity-100")
-      }, 300)
-    }, 15000)
+        // Loading will be handled by the data fetching useEffect
+      }, 300) // Shorter transition time
+    }, 15000) // 15 seconds between league changes
 
     return () => clearInterval(interval)
   }, [])
@@ -93,134 +94,115 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (initialLoad) {
+        setLoading(false)
+        setInitialLoad(false)
+        setShowLoading(false)
+        setError("Loading timeout - please refresh the page")
+      }
+    }, 10000) // 10 second timeout
+
     async function fetchMatchupData() {
       if (!currentLeague) return
 
       setLoading(true)
+      setShowLoading(true)
       setError(null)
 
       try {
         console.log("[v0] Fetching latest week data for", currentLeague.name)
 
-        const maxRetries = 2
-        let attempt = 0
-        let lastError: Error | null = null
+        const format = LEAGUE_FORMAT[currentLeague.leagueId]
+        if (!format) {
+          console.log("[v0] League not in format mapping, skipping:", currentLeague.leagueId)
+          setError("League format not supported")
+          setMatchups([])
+          setLoading(false)
+          return
+        }
 
-        while (attempt < maxRetries) {
+        const latestWeek = await getLatestWeekWithData(currentLeague.leagueId)
+        console.log("[v0] Latest week detected:", latestWeek)
+        setCurrentWeek(latestWeek)
+
+        const [usersResult, rostersResult, matchupsResult] = await Promise.all([
+          getUsers(currentLeague.leagueId).catch(err => {
+            console.error("[v0] Users fetch error:", err)
+            throw err
+          }),
+          getRosters(currentLeague.leagueId).catch(err => {
+            console.error("[v0] Rosters fetch error:", err)
+            throw err
+          }),
+          getMatchups(currentLeague.leagueId, latestWeek).catch(err => {
+            console.error("[v0] Matchups fetch error:", err)
+            throw err
+          }),
+        ])
+
+        console.log("[v0] All data fetched successfully")
+        console.log("[v0] Matchups data:", matchupsResult.data)
+        console.log("[v0] Users data:", usersResult.data)
+        console.log("[v0] Rosters data:", rostersResult.data)
+
+        if (format === "guillotine") {
+          console.log("[v0] Processing Guillotine standings...")
           try {
-            const format = LEAGUE_FORMAT[currentLeague.leagueId]
-            if (!format) {
-              console.log("[v0] League not in format mapping, skipping:", currentLeague.leagueId)
-              setError("League format not supported")
-              setMatchups([])
-              setLoading(false)
-              return
-            }
-
-            const latestWeek = await getLatestWeekWithData(currentLeague.leagueId)
-            console.log("[v0] Latest week detected:", latestWeek)
-            setCurrentWeek(latestWeek)
-
-            const [usersResult, rostersResult, matchupsResult] = await Promise.all([
-              getUsers(currentLeague.leagueId).catch((err) => {
-                console.error("[v0] Users fetch failed:", err)
-                throw new Error(`Failed to fetch users: ${err.message}`)
-              }),
-              getRosters(currentLeague.leagueId).catch((err) => {
-                console.error("[v0] Rosters fetch failed:", err)
-                throw new Error(`Failed to fetch rosters: ${err.message}`)
-              }),
-              getMatchups(currentLeague.leagueId, latestWeek).catch((err) => {
-                console.error("[v0] Matchups fetch failed:", err)
-                throw new Error(`Failed to fetch matchups: ${err.message}`)
-              }),
-            ])
-
-            console.log("[v0] All data fetched successfully")
-
-            if (format === "guillotine") {
-              const processed = processGuillotineStandings(
-                matchupsResult.data,
-                usersResult.data,
-                rostersResult.data,
-                latestWeek,
-              )
-              setMatchups(processed)
-              ;(window as any).guillotineData = { users: usersResult.data, rosters: rostersResult.data }
-            } else {
-              const processed = processMatchupsForDisplay(
-                matchupsResult.data,
-                usersResult.data,
-                rostersResult.data,
-                latestWeek,
-              )
-              setMatchups(processed)
-            }
-
-            setDataProvenance({
-              hash: usersResult.hash,
-              fetchTime: usersResult.fetchTime,
-              source: "sleeper",
-            })
-
-            setRetryCount(0)
-            break
-          } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Unknown error"
-            console.error("[v0] Fetch attempt failed:", errorMessage)
-
-            if (errorMessage.includes("League ID not allowed")) {
-              console.log("[v0] League not allowed, skipping to next league")
-              setError("League not supported")
-              setMatchups([])
-              return
-            }
-
-            if (
-              errorMessage.includes("Expected object, received null") ||
-              errorMessage.includes("invalid_type") ||
-              errorMessage.includes("Zod")
-            ) {
-              console.log("[v0] Skipping league due to data format issues")
-              setError("League format not supported")
-              setMatchups([])
-              return
-            }
-
-            lastError = err as Error
-            attempt++
-            if (attempt < maxRetries) {
-              const delay = 2000
-              console.log(`[v0] Attempt ${attempt} failed, retrying in ${delay}ms...`)
-              await new Promise((resolve) => setTimeout(resolve, delay))
-            }
+            const processed = processGuillotineStandings(
+              matchupsResult.data,
+              usersResult.data,
+              rostersResult.data,
+              latestWeek,
+            )
+            console.log("[v0] Processed Guillotine data:", processed)
+            setMatchups(processed)
+            ;(window as any).guillotineData = { users: usersResult.data, rosters: rostersResult.data }
+          } catch (error) {
+            console.error("[v0] Error processing Guillotine data:", error)
+            setError("Failed to process Guillotine league data")
+            setMatchups([])
           }
+        } else {
+          const processed = processMatchupsForDisplay(
+            matchupsResult.data,
+            usersResult.data,
+            rostersResult.data,
+            latestWeek,
+          )
+          setMatchups(processed)
         }
 
-        if (attempt === maxRetries && lastError) {
-          throw lastError
-        }
+        setDataProvenance({
+          hash: usersResult.hash,
+          fetchTime: usersResult.fetchTime,
+          source: "sleeper",
+        })
+
+        setRetryCount(0)
       } catch (error) {
         console.error("[v0] Failed to fetch matchup data:", error)
         setError(`Failed to load data for ${currentLeague.name}`)
         setMatchups([])
-        setRetryCount((prev) => prev + 1)
-
-        setTimeout(() => {
-          if (retryCount < 3) {
-            fetchMatchupData()
-          }
-        }, 5000)
       } finally {
-        setLoading(false)
+        // Ensure minimum loading time for better UX
+        setTimeout(() => {
+          setLoading(false)
+          setInitialLoad(false)
+          setShowLoading(false)
+        }, 1500) // Minimum 1.5 seconds loading time
       }
     }
 
     fetchMatchupData()
 
-    const refreshInterval = setInterval(fetchMatchupData, 3 * 60 * 1000)
-    return () => clearInterval(refreshInterval)
-  }, [currentLeague, retryCount])
+    // Disable auto-refresh for now to prevent flickering
+    // const refreshInterval = setInterval(fetchMatchupData, 5 * 60 * 1000)
+    // return () => clearInterval(refreshInterval)
+    
+    return () => clearTimeout(timeout)
+  }, [currentLeague, initialLoad])
 
   const errorFallback = (
     <div className="flex flex-col items-center justify-center min-h-[600px] space-y-6 text-center">
@@ -233,7 +215,7 @@ export default function HomePage() {
     </div>
   )
 
-  if (loading) {
+  if (loading || showLoading) {
     return (
       <div className="min-h-[100svh] w-full flex flex-col items-center justify-center bg-black text-slate-100">
         <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto px-3 sm:px-4 py-4">
@@ -273,7 +255,7 @@ export default function HomePage() {
     <ErrorBoundary fallback={errorFallback}>
       <div className="min-h-[100svh] w-screen overflow-hidden bg-black text-slate-100 flex flex-col items-center px-3 sm:px-4 py-4">
         <div className="max-w-[500px] sm:max-w-[600px] md:max-w-[900px] mx-auto w-full">
-          <div className={`space-y-6 transition-opacity duration-300 ${fadeClass}`}>
+          <div className={`space-y-6 transition-opacity duration-500 ease-in-out ${fadeClass}`}>
             <div className="text-center space-y-4">
               <h1 className="text-[clamp(1.25rem,2.5vw,1.75rem)] font-bold text-balance leading-tight">
                 {currentLeague.name} — Week {currentWeek} Matchups
@@ -293,6 +275,10 @@ export default function HomePage() {
 
                     if (format === "guillotine") {
                       const guillotineData = (window as any).guillotineData || { users: [], rosters: [] }
+                      console.log("[v0] Rendering Guillotine table with data:", {
+                        matchups: matchups,
+                        guillotineData: guillotineData
+                      })
                       return (
                         <div className="lg:col-span-2">
                           <GuillotineTable
@@ -487,6 +473,13 @@ export default function HomePage() {
                 </div>
               </div>
             )}
+
+            {/* Footer */}
+            <div className="text-center py-6 border-t border-gray-700">
+              <p className="text-[clamp(0.8rem,1.5vw,1rem)] text-slate-400">
+                Made by <span className="text-blue-400 font-semibold">Sam's</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -499,7 +492,25 @@ function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users:
     matchupsCount: matchups.length,
     usersCount: users.length,
     rostersCount: rosters.length,
+    matchups: matchups,
+    users: users,
+    rosters: rosters,
   })
+
+  if (!matchups || matchups.length === 0) {
+    console.log("[v0] No matchups data available for Guillotine table")
+    return (
+      <div className="w-full rounded-2xl border border-gray-600 bg-black shadow-sm p-4 md:p-6">
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">📊</div>
+          <p className="text-[clamp(1rem,2.5vw,1.25rem)] text-slate-400">No matchup data available</p>
+          <p className="text-[clamp(0.8rem,1.5vw,0.9rem)] text-slate-500 mt-2">
+            Check console for debugging information
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const teamScores = matchups
     .map((matchup) => {
@@ -521,22 +532,39 @@ function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users:
         ownerName: user?.display_name || "Unknown",
         handle: user?.username || user?.display_name?.toLowerCase().replace(/\s+/g, "") || "unknown",
         avatar: avatarUrl(user?.avatar),
-        points: matchup.points || 0,
+        points: matchup.points, // Keep null values as null
         projectedPoints: roster?.settings?.fpts || roster?.settings?.fpts_decimal || 0,
+        isPreGame: matchup.points === null,
       }
     })
-    .sort((a, b) => a.points - b.points)
+    .sort((a, b) => {
+      // Sort by actual points first, null values last
+      if (a.points === null && b.points === null) return a.rosterId - b.rosterId
+      if (a.points === null) return 1 // null values go to end
+      if (b.points === null) return -1
+      return b.points - a.points // Sort highest to lowest for real scores
+    })
 
-  const totalPoints = teamScores.reduce((sum, team) => sum + team.points, 0)
-  const leagueAverage = totalPoints / teamScores.length
-  const maxPoints = Math.max(...teamScores.map((t) => t.points))
+  const totalPoints = teamScores.reduce((sum, team) => sum + (team.points || 0), 0)
+  const teamsWithScores = teamScores.filter(t => t.points !== null)
+  const leagueAverage = teamsWithScores.length > 0 ? totalPoints / teamsWithScores.length : 0
+  const maxPoints = teamsWithScores.length > 0 ? Math.max(...teamsWithScores.map((t) => t.points)) : 0
 
-  const teamsWithSafety = teamScores.map((team, index) => ({
-    ...team,
-    rank: index + 1,
-    safetyPercentage: Math.min(95, Math.max(5, (team.points / maxPoints) * 100)),
-    zone: index < 3 ? "danger" : "safety",
-  }))
+  // Calculate zones based on teams with actual scores only
+  const teamsWithScoresCount = teamsWithScores.length
+  const dangerZoneCutoff = Math.max(1, teamsWithScoresCount - 3) // Bottom 3 teams with scores go to danger zone
+  
+  const teamsWithSafety = teamScores.map((team, index) => {
+    const isPreGame = team.points === null
+    const scoreIndex = teamsWithScores.findIndex(t => t.rosterId === team.rosterId)
+    
+    return {
+      ...team,
+      rank: index + 1,
+      safetyPercentage: isPreGame ? 50 : (maxPoints > 0 ? Math.min(95, Math.max(5, (team.points / maxPoints) * 100)) : 50),
+      zone: isPreGame ? "safety" : (scoreIndex >= dangerZoneCutoff ? "danger" : "safety"),
+    }
+  })
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -579,17 +607,20 @@ function GuillotineTable({ matchups, users, rosters }: { matchups: any[]; users:
   )
 }
 
-function CompactTeamRow({ team }: { team: any }) {
-  const getScoreColor = (rank: number) => {
-    if (rank <= 3) return "text-red-300"
-    if (rank >= 7 && rank <= 9) return "text-yellow-300"
+function CompactTeamRow({ team }: { team: { rank: number; safetyPercentage: number; zone: string; rosterId: any; ownerName: any; handle: any; avatar: string; points: any; projectedPoints: any; isPreGame?: boolean } }) {
+  const getScoreColor = (zone: string, points: any) => {
+    if (zone === "pregame" || points === null) return "text-slate-400"
+    if (zone === "danger") return "text-red-300"
+    if (zone === "safety") return "text-green-300"
     return "text-slate-200"
   }
+
+  const displayPoints = team.points === null ? "—" : team.points.toFixed(1)
 
   return (
     <div className="flex items-center justify-between px-3 py-2 hover:bg-gray-700/30 rounded-lg transition-colors">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className={`text-sm font-bold w-6 ${getScoreColor(team.rank)}`}>#{team.rank}</span>
+        <span className={`text-sm font-bold w-6 ${getScoreColor(team.zone, team.points)}`}>#{team.rank}</span>
 
         {team.avatar ? (
           <img
@@ -604,11 +635,22 @@ function CompactTeamRow({ team }: { team: any }) {
         )}
 
         <div className="min-w-0 flex-1">
-          <div className={`font-medium text-sm truncate ${getScoreColor(team.rank)}`}>{team.ownerName}</div>
+          <div className="flex items-center gap-2">
+            <div className={`font-medium text-sm truncate ${getScoreColor(team.zone, team.points)}`}>
+              {team.ownerName}
+            </div>
+            {team.isPreGame && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-slate-600/30 text-slate-300 border border-slate-500/50 rounded-full">
+                Pre-game
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className={`text-lg font-bold tabular-nums ${getScoreColor(team.rank)}`}>{team.points.toFixed(1)}</div>
+      <div className={`text-lg font-bold tabular-nums ${getScoreColor(team.zone, team.points)}`}>
+        {displayPoints}
+      </div>
     </div>
   )
 }
@@ -624,24 +666,44 @@ function processGuillotineStandings(matchups: any[], users: any[], rosters: any[
       const roster = rosters.find((r) => r.roster_id === matchup.roster_id)
       const user = users.find((u) => u.user_id === roster?.owner_id)
 
-      const points = matchup.points || 0
+      // Determine if team has actually played (has starters or real points)
+      const hasStarters = matchup.starters && matchup.starters.length > 0
+      const hasRealPoints = matchup.points && matchup.points > 0
+      
+      // Set points to null if team hasn't started yet
+      let points = null
+      if (matchup.points !== null && matchup.points !== undefined) {
+        if (matchup.points > 0 || hasStarters) {
+          points = matchup.points // Real score or team has played
+        } else if (hasStarters) {
+          points = 0 // Team played but scored 0
+        }
+        // Otherwise points remains null (pre-game)
+      }
+      
       const projection = calculateProjection(roster, rosters, week)
 
       return {
         rosterId: matchup.roster_id,
-        teamName: user?.metadata?.team_name || `Team ${matchup.roster_id}`,
+        teamName: user?.metadata?.team_name || user?.display_name || `Team ${matchup.roster_id}`,
         ownerName: user?.display_name || "Unknown",
-        handle: user?.metadata?.username || user?.display_name?.toLowerCase().replace(/\s+/g, "") || "unknown",
+        handle: user?.username || user?.display_name?.toLowerCase().replace(/\s+/g, "") || "unknown",
         avatar: avatarUrl(user?.avatar),
         seed: `(#${roster?.settings?.rank || "—"})`,
         points,
         projection,
         winProbability: 0.5,
+        isPreGame: points === null,
       }
     })
     .sort((a, b) => {
-      const scoreA = a.points > 0 ? a.points : a.projection
-      const scoreB = b.points > 0 ? b.points : b.projection
+      // Sort by actual points first, then by projection, then by roster_id
+      const scoreA = a.points !== null ? a.points : (a.projection > 0 ? a.projection : -1)
+      const scoreB = b.points !== null ? b.points : (b.projection > 0 ? b.projection : -1)
+      
+      if (scoreA === scoreB) {
+        return a.rosterId - b.rosterId // Stable sort for equal scores
+      }
       return scoreB - scoreA
     })
 
